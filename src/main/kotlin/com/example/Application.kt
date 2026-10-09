@@ -35,7 +35,7 @@ fun Application.module() {
     routing {
         // GET /  -> plain text
         get("/") {
-            call.respondText("Hello from Ktor!")
+            call.respondText("Jap, kleiner Demo Webservice auf Codespaces ;-) ")
         }
 
         // GET /health  -> JSON
