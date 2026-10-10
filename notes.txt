@@ -6,6 +6,9 @@ docker run --rm -p 8080:8080 ktor-demo
 
 
 
+./gradlew run
+
+
    curl http://localhost:8080/
    curl http://localhost:8080/health
    curl -X POST http://localhost:8080/echo -H "Content-Type: application/json" -d '{"text":"hi"}'
