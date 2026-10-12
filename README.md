@@ -45,7 +45,7 @@ to the Ktor API at <http://localhost:8080>.
 
 - `GET /` returns the demo service message.
 - `GET /health` returns the API health status as JSON.
-- `GET /users` returns the user list fetched from JSONPlaceholder, loading it on demand if the cache is not ready yet.
+- `GET /users` returns the cached user list fetched by the API in the background. If it is not ready, the endpoint immediately returns `503 Service Unavailable` with a `Retry-After` header while the API retries the upstream request.
 - `POST /echo` echoes a JSON message.
 
 ## Build the API container only

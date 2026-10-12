@@ -8,6 +8,7 @@ import io.ktor.client.engine.ProxyBuilder
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.request.get
+import io.ktor.http.HttpHeaders
 import io.ktor.http.URLBuilder
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
@@ -75,16 +76,15 @@ fun Application.usersModule() {
 
     routing {
         get("/users") {
-            try {
-                call.respond(service.getUsers())
-            } catch (exception: CancellationException) {
-                throw exception
-            } catch (exception: Exception) {
-                service.logFetchFailure(exception)
+            val users = service.cachedUsers()
+            if (users == null) {
+                call.response.headers.append(HttpHeaders.RetryAfter, "15")
                 call.respondText(
-                    "Unable to load users from upstream",
-                    status = HttpStatusCode.BadGateway
+                    "User data is not available yet; retry shortly.",
+                    status = HttpStatusCode.ServiceUnavailable
                 )
+            } else {
+                call.respond(users)
             }
         }
     }
@@ -143,16 +143,7 @@ private class UsersService {
         }
     }
 
-    suspend fun getUsers(): List<User> {
-        users?.let { return it }
-        return refreshMutex.withLock {
-            users ?: fetchUsers()
-        }
-    }
-
-    fun logFetchFailure(exception: Exception) {
-        logger.error("Unable to load users from upstream", exception)
-    }
+    fun cachedUsers(): List<User>? = users
 
     private suspend fun refreshUsers() {
         refreshMutex.withLock {
