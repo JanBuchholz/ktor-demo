@@ -5,6 +5,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.request.get
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
@@ -21,6 +22,8 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
@@ -70,14 +73,16 @@ fun Application.usersModule() {
 
     routing {
         get("/users") {
-            val users = service.cachedUsers()
-            if (users == null) {
+            try {
+                call.respond(service.getUsers())
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (exception: Exception) {
+                service.logFetchFailure(exception)
                 call.respondText(
-                    "User data is not available yet",
-                    status = HttpStatusCode.ServiceUnavailable
+                    "Unable to load users from upstream",
+                    status = HttpStatusCode.BadGateway
                 )
-            } else {
-                call.respond(users)
             }
         }
     }
@@ -86,8 +91,14 @@ fun Application.usersModule() {
 private class UsersService {
     private val logger = LoggerFactory.getLogger(UsersService::class.java)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val refreshMutex = Mutex()
     private val client = HttpClient(CIO) {
         expectSuccess = true
+        install(HttpTimeout) {
+            requestTimeoutMillis = REQUEST_TIMEOUT_MILLIS
+            connectTimeoutMillis = CONNECT_TIMEOUT_MILLIS
+            socketTimeoutMillis = REQUEST_TIMEOUT_MILLIS
+        }
         install(ContentNegotiation) {
             json(Json { ignoreUnknownKeys = true })
         }
@@ -100,8 +111,7 @@ private class UsersService {
         scope.launch {
             while (isActive) {
                 val nextFetchDelay = try {
-                    users = client.get(USERS_URL).body()
-                    logger.info("Fetched {} users from {}", users?.size, USERS_URL)
+                    refreshUsers()
                     POLL_INTERVAL_MILLIS
                 } catch (exception: CancellationException) {
                     throw exception
@@ -114,7 +124,29 @@ private class UsersService {
         }
     }
 
-    fun cachedUsers(): List<User>? = users
+    suspend fun getUsers(): List<User> {
+        users?.let { return it }
+        return refreshMutex.withLock {
+            users ?: fetchUsers()
+        }
+    }
+
+    fun logFetchFailure(exception: Exception) {
+        logger.error("Unable to load users from upstream", exception)
+    }
+
+    private suspend fun refreshUsers() {
+        refreshMutex.withLock {
+            fetchUsers()
+        }
+    }
+
+    private suspend fun fetchUsers(): List<User> {
+        val fetchedUsers: List<User> = client.get(USERS_URL).body()
+        users = fetchedUsers
+        logger.info("Fetched {} users from {}", fetchedUsers.size, USERS_URL)
+        return fetchedUsers
+    }
 
     fun close() {
         scope.cancel()
@@ -125,5 +157,7 @@ private class UsersService {
         const val USERS_URL = "https://jsonplaceholder.typicode.com/users"
         const val POLL_INTERVAL_MILLIS = 10 * 60 * 1000L
         const val RETRY_INTERVAL_MILLIS = 15 * 1000L
+        const val CONNECT_TIMEOUT_MILLIS = 5 * 1000L
+        const val REQUEST_TIMEOUT_MILLIS = 10 * 1000L
     }
 }

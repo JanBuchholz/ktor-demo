@@ -42,7 +42,7 @@ to the Ktor API at <http://localhost:8080>.
 
 - `GET /` returns the demo service message.
 - `GET /health` returns the API health status as JSON.
-- `GET /users` returns the cached user list fetched from JSONPlaceholder.
+- `GET /users` returns the user list fetched from JSONPlaceholder, loading it on demand if the cache is not ready yet.
 - `POST /echo` echoes a JSON message.
 
 ## Build the API container only

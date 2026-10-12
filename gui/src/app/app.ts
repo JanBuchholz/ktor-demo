@@ -7,7 +7,7 @@ import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
-import { retry, timer } from 'rxjs';
+import { retry, TimeoutError, timeout, timer } from 'rxjs';
 import { User, UsersService } from './users.service';
 
 @Component({
@@ -77,10 +77,15 @@ export class App implements AfterViewInit, OnInit {
     this.usersService
       .getUsers()
       .pipe(
+        timeout({ first: 12_000 }),
         retry({
           count: 8,
-          delay: (error: HttpErrorResponse, retryCount) => {
-            if (![0, 502, 503, 504].includes(error.status)) {
+          delay: (error: unknown, retryCount) => {
+            if (
+              !(error instanceof TimeoutError) &&
+              (!(error instanceof HttpErrorResponse) ||
+                ![0, 502, 503, 504].includes(error.status))
+            ) {
               throw error;
             }
             return timer(Math.min(retryCount, 5) * 1000);
@@ -95,11 +100,13 @@ export class App implements AfterViewInit, OnInit {
         error: (error: HttpErrorResponse) => {
           this.error.set(true);
           this.errorMessage.set(
-            error.status === 503
-              ? 'The API is running, but its user data is not ready yet. Please try again shortly.'
-              : error.status === 0 || error.status >= 502
-                ? 'The GUI could not connect to the API. Check that both services are running and try again.'
-                : `The API returned an unexpected error (HTTP ${error.status}).`,
+            error instanceof TimeoutError
+              ? 'The API did not respond in time. Check the API logs and try again.'
+              : error.status === 502
+                ? 'The API could not retrieve user data from JSONPlaceholder. Check the API logs and try again.'
+                : error.status === 0 || error.status >= 502
+                  ? 'The GUI could not connect to the API. Check that both services are running and try again.'
+                  : `The API returned an unexpected error (HTTP ${error.status}).`,
           );
           this.loading.set(false);
         },
