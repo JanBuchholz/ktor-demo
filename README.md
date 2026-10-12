@@ -17,6 +17,9 @@ Open the forwarded GUI port (4200) in Codespaces, or <http://localhost:4200> loc
 The GUI calls `/api` on its own origin; its development server and the Compose Nginx
 container proxy those requests to the API, so the browser does not need direct access
 to a separately forwarded API port.
+The API container also inherits `HTTPS_PROXY`/`HTTP_PROXY` from the environment
+running Docker Compose, which lets it reach the upstream user service in proxied
+Codespaces environments.
 Stop both services with `Ctrl+C`; run `docker compose down` to remove the containers.
 
 ## Run locally

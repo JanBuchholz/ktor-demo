@@ -4,9 +4,11 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.cio.CIO
+import io.ktor.client.engine.ProxyBuilder
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.request.get
+import io.ktor.http.URLBuilder
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationStopped
@@ -92,7 +94,18 @@ private class UsersService {
     private val logger = LoggerFactory.getLogger(UsersService::class.java)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val refreshMutex = Mutex()
+    private val upstreamProxy = System.getenv("HTTPS_PROXY")
+        ?.takeIf(String::isNotBlank)
+        ?: System.getenv("https_proxy")
+        ?.takeIf(String::isNotBlank)
+        ?: System.getenv("HTTP_PROXY")
+        ?.takeIf(String::isNotBlank)
+        ?: System.getenv("http_proxy")
+        ?.takeIf(String::isNotBlank)
     private val client = HttpClient(CIO) {
+        engine {
+            upstreamProxy?.let { proxy = ProxyBuilder.http(URLBuilder(it).build()) }
+        }
         expectSuccess = true
         install(HttpTimeout) {
             requestTimeoutMillis = REQUEST_TIMEOUT_MILLIS
@@ -101,6 +114,12 @@ private class UsersService {
         }
         install(ContentNegotiation) {
             json(Json { ignoreUnknownKeys = true })
+        }
+    }
+
+    init {
+        if (upstreamProxy != null) {
+            logger.info("Using configured HTTP proxy for upstream user requests")
         }
     }
 
