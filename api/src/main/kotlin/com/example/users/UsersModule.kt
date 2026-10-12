@@ -30,10 +30,38 @@ data class User(
     val id: Int,
     val name: String,
     val username: String,
-    val email: String
+    val email: String,
+    val address: Address,
+    val phone: String,
+    val website: String,
+    val company: Company
+)
+
+@Serializable
+data class Address(
+    val street: String,
+    val suite: String,
+    val city: String,
+    val zipcode: String,
+    val geo: Geo
+)
+
+@Serializable
+data class Geo(
+    val lat: String,
+    val lng: String
+)
+
+@Serializable
+data class Company(
+    val name: String,
+    val catchPhrase: String,
+    val bs: String
 )
 
 fun Application.usersModule() {
+
+    //Call user service
     val service = UsersService()
     service.start()
     monitor.subscribe(ApplicationStopped) {
@@ -41,15 +69,15 @@ fun Application.usersModule() {
     }
 
     routing {
-        get("/users/1") {
-            val user = service.cachedUser()
-            if (user == null) {
+        get("/users") {
+            val users = service.cachedUsers()
+            if (users == null) {
                 call.respondText(
                     "User data is not available yet",
                     status = HttpStatusCode.ServiceUnavailable
                 )
             } else {
-                call.respond(user)
+                call.respond(users)
             }
         }
     }
@@ -66,25 +94,25 @@ private class UsersService {
     }
 
     @Volatile
-    private var user: User? = null
+    private var users: List<User>? = null
 
     fun start() {
         scope.launch {
             while (isActive) {
                 try {
-                    user = client.get(USER_URL).body()
-                    logger.info("Fetched user {} from {}", user?.id, USER_URL)
+                    users = client.get(USERS_URL).body()
+                    logger.info("Fetched {} users from {}", users?.size, USERS_URL)
                 } catch (exception: CancellationException) {
                     throw exception
                 } catch (exception: Exception) {
-                    logger.error("Failed to fetch user from {}", USER_URL, exception)
+                    logger.error("Failed to fetch users from {}", USERS_URL, exception)
                 }
                 delay(POLL_INTERVAL_MILLIS)
             }
         }
     }
 
-    fun cachedUser(): User? = user
+    fun cachedUsers(): List<User>? = users
 
     fun close() {
         scope.cancel()
@@ -92,7 +120,7 @@ private class UsersService {
     }
 
     private companion object {
-        const val USER_URL = "https://jsonplaceholder.typicode.com/users/1"
+        const val USERS_URL = "https://jsonplaceholder.typicode.com/users"
         const val POLL_INTERVAL_MILLIS = 10 * 60 * 1000L
     }
 }

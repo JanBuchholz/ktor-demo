@@ -7,6 +7,7 @@ import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
+import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
@@ -29,6 +30,13 @@ fun main() {
 }
 
 fun Application.module() {
+    install(CORS) {
+        allowHost("localhost:4200")
+        allowHost("127.0.0.1:4200")
+        allowHeader(io.ktor.http.HttpHeaders.ContentType)
+        allowMethod(io.ktor.http.HttpMethod.Get)
+        allowMethod(io.ktor.http.HttpMethod.Post)
+    }
     install(ContentNegotiation) { json() }
     usersModule()
 

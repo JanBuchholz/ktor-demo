@@ -3,3 +3,7 @@ build
 .idea
 .vscode
 *.iml
+gui
+node_modules
+**/node_modules
+**/dist

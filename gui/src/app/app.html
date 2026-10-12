@@ -1,0 +1,128 @@
+<main class="page-shell">
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="Ktor Demo home">
+      <span class="brand-mark">K</span>
+      <span>ktor<span class="brand-light">demo</span></span>
+    </a>
+    <span class="connection"><span class="connection-dot"></span> API workspace</span>
+  </header>
+
+  <section class="hero">
+    <p class="eyebrow">FULL-STACK STARTER</p>
+    <h1>People,<br /><span>beautifully connected.</span></h1>
+    <p class="hero-copy">
+      Browse the people directory served by your Ktor API. Search, sort, and explore all the details.
+    </p>
+  </section>
+
+  <section class="directory" aria-labelledby="directory-heading">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">CONNECTED DATA</p>
+        <h2 id="directory-heading">People directory</h2>
+      </div>
+      <button mat-stroked-button type="button" (click)="loadUsers()" [disabled]="loading()">
+        <span class="refresh-icon" aria-hidden="true">↻</span>
+        Refresh
+      </button>
+    </div>
+
+    @if (loading()) {
+      <div class="state-card" aria-live="polite">
+        <mat-spinner diameter="32" />
+        <p>Loading people from your API…</p>
+      </div>
+    } @else if (error()) {
+      <div class="state-card error-state" aria-live="assertive">
+        <span class="state-icon" aria-hidden="true">!</span>
+        <h3>Could not reach the API</h3>
+        <p>Make sure the Ktor API is running on port 8080, then try again.</p>
+        <button mat-flat-button color="primary" type="button" (click)="loadUsers()">Try again</button>
+      </div>
+    } @else {
+      <div class="table-toolbar">
+        <div class="table-summary">
+          <span class="people-icon" aria-hidden="true">✳</span>
+          <span><strong>{{ dataSource.data.length }}</strong> people</span>
+        </div>
+        <mat-form-field appearance="outline" class="search-field">
+          <mat-label>Search people</mat-label>
+          <input matInput (input)="applyFilter($event)" placeholder="Name, email, company…" />
+          <span matTextPrefix aria-hidden="true">⌕&nbsp;</span>
+        </mat-form-field>
+      </div>
+
+      <div class="table-wrap">
+        <table mat-table [dataSource]="dataSource" matSort>
+          <ng-container matColumnDef="name">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
+            <td mat-cell *matCellDef="let user">
+              <div class="person-cell">
+                <span class="avatar">{{ user.name.charAt(0) }}</span>
+                <span class="person-name">{{ user.name }}</span>
+              </div>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="username">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Username</th>
+            <td mat-cell *matCellDef="let user"><span class="username">&#64;{{ user.username }}</span></td>
+          </ng-container>
+
+          <ng-container matColumnDef="email">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Email</th>
+            <td mat-cell *matCellDef="let user">
+              <a class="table-link" [href]="'mailto:' + user.email">{{ user.email }}</a>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="address">
+            <th mat-header-cell *matHeaderCellDef>Location</th>
+            <td mat-cell *matCellDef="let user">
+              <span class="location">{{ user.address.city }}</span>
+              <span class="secondary-text">{{ user.address.zipcode }}</span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="phone">
+            <th mat-header-cell *matHeaderCellDef>Phone</th>
+            <td mat-cell *matCellDef="let user"><span class="secondary-text">{{ user.phone }}</span></td>
+          </ng-container>
+
+          <ng-container matColumnDef="website">
+            <th mat-header-cell *matHeaderCellDef>Website</th>
+            <td mat-cell *matCellDef="let user">
+              <a class="table-link" [href]="'https://' + user.website" target="_blank" rel="noopener noreferrer">
+                {{ user.website }}
+              </a>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="company">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Company</th>
+            <td mat-cell *matCellDef="let user"><span class="company-name">{{ user.company.name }}</span></td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+          <tr class="mat-mdc-row" *matNoDataRow>
+            <td class="mat-mdc-cell empty-cell" [attr.colspan]="displayedColumns.length">
+              No people match your search.
+            </td>
+          </tr>
+        </table>
+      </div>
+      <mat-paginator
+        [pageSize]="10"
+        [pageSizeOptions]="[5, 10, 20]"
+        aria-label="Select people page"
+        showFirstLastButtons
+      />
+    }
+  </section>
+
+  <footer class="footer">
+    <span><span class="footer-dot"></span> Ktor API</span>
+    <span>GET /users</span>
+  </footer>
+</main>
