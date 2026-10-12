@@ -35,8 +35,8 @@
     } @else if (error()) {
       <div class="state-card error-state" aria-live="assertive">
         <span class="state-icon" aria-hidden="true">!</span>
-        <h3>Could not reach the API</h3>
-        <p>Make sure the Ktor API is running on port 8080, then try again.</p>
+        <h3>Could not load people</h3>
+        <p>{{ errorMessage() }}</p>
         <button mat-flat-button color="primary" type="button" (click)="loadUsers()">Try again</button>
       </div>
     } @else {

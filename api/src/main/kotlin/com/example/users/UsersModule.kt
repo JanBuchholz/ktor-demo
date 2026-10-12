@@ -99,15 +99,17 @@ private class UsersService {
     fun start() {
         scope.launch {
             while (isActive) {
-                try {
+                val nextFetchDelay = try {
                     users = client.get(USERS_URL).body()
                     logger.info("Fetched {} users from {}", users?.size, USERS_URL)
+                    POLL_INTERVAL_MILLIS
                 } catch (exception: CancellationException) {
                     throw exception
                 } catch (exception: Exception) {
                     logger.error("Failed to fetch users from {}", USERS_URL, exception)
+                    RETRY_INTERVAL_MILLIS
                 }
-                delay(POLL_INTERVAL_MILLIS)
+                delay(nextFetchDelay)
             }
         }
     }
@@ -122,5 +124,6 @@ private class UsersService {
     private companion object {
         const val USERS_URL = "https://jsonplaceholder.typicode.com/users"
         const val POLL_INTERVAL_MILLIS = 10 * 60 * 1000L
+        const val RETRY_INTERVAL_MILLIS = 15 * 1000L
     }
 }
