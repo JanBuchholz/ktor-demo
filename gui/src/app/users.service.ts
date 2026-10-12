@@ -28,6 +28,6 @@ export class UsersService {
   private readonly http = inject(HttpClient);
 
   getUsers(): Observable<User[]> {
-    return this.http.get<User[]>('http://localhost:8080/users');
+    return this.http.get<User[]>('/api/users');
   }
 }

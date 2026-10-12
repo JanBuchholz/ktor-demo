@@ -13,7 +13,10 @@ Build and start both containers from the repository root:
 docker compose up --build
 ```
 
-Open <http://localhost:4200> for the GUI or <http://localhost:8080> for the API.
+Open the forwarded GUI port (4200) in Codespaces, or <http://localhost:4200> locally.
+The GUI calls `/api` on its own origin; its development server and the Compose Nginx
+container proxy those requests to the API, so the browser does not need direct access
+to a separately forwarded API port.
 Stop both services with `Ctrl+C`; run `docker compose down` to remove the containers.
 
 ## Run locally
@@ -32,7 +35,8 @@ npm install
 npm start
 ```
 
-Open <http://localhost:4200>. The GUI calls the API at <http://localhost:8080>.
+Open <http://localhost:4200>. The Angular development server proxies GUI API requests
+to the Ktor API at <http://localhost:8080>.
 
 ## API endpoints
 
